@@ -2,11 +2,13 @@ import { action } from '@storybook/addon-actions';
 import { Meta, StoryFn, StoryObj } from '@storybook/react';
 import React, { ComponentProps, useCallback, useEffect, useState } from 'react';
 
+import { SelectableValue } from '@grafana/data';
+
 import { useTheme2 } from '../../themes/ThemeContext';
 import { Alert } from '../Alert/Alert';
 import { Divider } from '../Divider/Divider';
 import { Field } from '../Forms/Field';
-import { Select } from '../Select/Select';
+import { AsyncSelect, Select } from '../Select/Select';
 
 import { Combobox, ComboboxOption } from './Combobox';
 
@@ -53,8 +55,6 @@ const meta: Meta<PropsAndCustomArgs> = {
 
 const BasicWithState: StoryFn<typeof Combobox> = (args) => {
   const [value, setValue] = useState(args.value);
-  console.log('--- Story render ---', { value });
-
   const valueString = value ? JSON.stringify(value) : 'null';
 
   return (
@@ -262,20 +262,19 @@ const AsyncStory: StoryFn<PropsAndCustomArgs> = (args) => {
   const [selectedOption, setSelectedOption] = useState<ComboboxOption<string> | null>(null);
 
   // AsyncSelect
-  // const [asyncSelectValue, setAsyncSelectValue] = useState<SelectableValue<string> | null>(null);
+  const [asyncSelectValue, setAsyncSelectValue] = useState<SelectableValue<string> | null>(null);
 
   // This simulates a kind of search API call
   const loadOptionsWithLabels = useCallback((inputValue: string) => {
     loadOptionsAction(inputValue);
-    console.log(`[Story] loadOptions`, inputValue);
     return fakeSearchAPI(`http://example.com/search?query=${inputValue}`);
   }, []);
 
-  // const loadOptionsOnlyValues = useCallback((inputValue: string) => {
-  //   return fakeSearchAPI(`http://example.com/search?query=${inputValue}`).then((options) =>
-  //     options.map((opt) => ({ value: opt.label! }))
-  //   );
-  // }, []);
+  const loadOptionsOnlyValues = useCallback((inputValue: string) => {
+    return fakeSearchAPI(`http://example.com/search?query=${inputValue}`).then((options) =>
+      options.map((opt) => ({ value: opt.label! }))
+    );
+  }, []);
 
   const loadOptionsWithErrors = useCallback((inputValue: string) => {
     if (inputValue.length % 2 === 0) {
@@ -304,7 +303,7 @@ const AsyncStory: StoryFn<PropsAndCustomArgs> = (args) => {
         />
       </Field>
 
-      {/* <Field
+      <Field
         label="Options without labels"
         description="Or without labels, where consumer can just pass in a raw scalar value Value"
       >
@@ -319,7 +318,21 @@ const AsyncStory: StoryFn<PropsAndCustomArgs> = (args) => {
           }}
           createCustomValue={args.createCustomValue}
         />
-      </Field> */}
+      </Field>
+
+      <Field label="Compared to AsyncSelect">
+        <AsyncSelect
+          id="test-async-select"
+          placeholder="Select an option"
+          loadOptions={loadOptionsWithLabels}
+          value={asyncSelectValue}
+          defaultOptions
+          onChange={(val) => {
+            action('onChange')(val);
+            setAsyncSelectValue(val);
+          }}
+        />
+      </Field>
 
       <Field label="Async with error" description="An odd number of characters throws an error">
         <Combobox
@@ -333,20 +346,6 @@ const AsyncStory: StoryFn<PropsAndCustomArgs> = (args) => {
           }}
         />
       </Field>
-
-      {/* <Field label="Compared to AsyncSelect">
-        <AsyncSelect
-          id="test-async-select"
-          placeholder="Select an option"
-          loadOptions={loadOptionsWithLabels}
-          value={asyncSelectValue}
-          defaultOptions
-          onChange={(val) => {
-            action('onChange')(val);
-            setAsyncSelectValue(val);
-          }}
-        />
-      </Field> */}
     </>
   );
 };
