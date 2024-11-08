@@ -138,6 +138,10 @@ export enum AccessControlAction {
   AlertingTimeIntervalsRead = 'alert.notifications.time-intervals:read',
   AlertingTimeIntervalsWrite = 'alert.notifications.time-intervals:write',
 
+  // Alerting routes actions
+  AlertingRoutesRead = 'alert.notifications.routes:read',
+  AlertingRoutesWrite = 'alert.notifications.routes:write',
+
   ActionAPIKeysRead = 'apikeys:read',
   ActionAPIKeysCreate = 'apikeys:create',
   ActionAPIKeysDelete = 'apikeys:delete',
