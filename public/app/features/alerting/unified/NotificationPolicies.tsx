@@ -5,9 +5,14 @@ import { useAsyncFn } from 'react-use';
 import { GrafanaTheme2, UrlQueryMap } from '@grafana/data';
 import { Alert, LoadingPlaceholder, Stack, Tab, TabContent, TabsBar, useStyles2, withErrorBoundary } from '@grafana/ui';
 import { useAppNotification } from 'app/core/copy/appNotification';
+import { contextSrv } from 'app/core/core';
 import { useQueryParams } from 'app/core/hooks/useQueryParams';
-import { PROVENANCE_NONE, useMuteTimings } from 'app/features/alerting/unified/components/mute-timings/useMuteTimings';
-import { ObjectMatcher, Receiver, Route, RouteWithID } from 'app/plugins/datasource/alertmanager/types';
+import { useContactPointsWithStatus } from 'app/features/alerting/unified/components/contact-points/useContactPoints';
+import { useMuteTimings } from 'app/features/alerting/unified/components/mute-timings/useMuteTimings';
+import { AlertmanagerAction, useAlertmanagerAbility } from 'app/features/alerting/unified/hooks/useAbilities';
+import { PROVENANCE_NONE } from 'app/features/alerting/unified/utils/k8s/constants';
+import { ObjectMatcher, Route, RouteWithID } from 'app/plugins/datasource/alertmanager/types';
+import { AccessControlAction } from 'app/types';
 
 import { useCleanup } from '../../../core/hooks/useCleanup';
 
@@ -55,11 +60,18 @@ enum ActiveTab {
 const AmRoutes = () => {
   const styles = useStyles2(getStyles);
   const appNotification = useAppNotification();
-
+  const [, showPoliciesTab] = useAlertmanagerAbility(AlertmanagerAction.ViewNotificationPolicyTree);
+  const [, showTimingsTab] = useAlertmanagerAbility(AlertmanagerAction.ViewMuteTiming);
+  const [, canSeeContactPointsStatus] = useAlertmanagerAbility(AlertmanagerAction.ViewContactPoint);
+  const availableTabs = [
+    showPoliciesTab && ActiveTab.NotificationPolicies,
+    showTimingsTab && ActiveTab.MuteTimings,
+  ].filter((tab) => !!tab);
+  const canSeeAlertGroups = contextSrv.hasPermission(AccessControlAction.AlertingInstanceRead);
   const { useGetAlertmanagerAlertGroupsQuery } = alertmanagerApi;
 
   const [queryParams, setQueryParams] = useQueryParams();
-  const { tab } = getActiveTabFromUrl(queryParams);
+  const { tab } = getActiveTabFromUrl(queryParams, availableTabs[0]);
 
   const [activeTab, setActiveTab] = useState<ActiveTab>(tab);
   const [updatingTree, setUpdatingTree] = useState<boolean>(false);
@@ -68,37 +80,38 @@ const AmRoutes = () => {
 
   const { selectedAlertmanager, hasConfigurationAPI, isGrafanaAlertmanager } = useAlertmanager();
   const { getRouteGroupsMap } = useRouteGroupsMatcher();
-  const { data: muteTimings = [] } = useMuteTimings({ alertmanager: selectedAlertmanager ?? '' });
+  const { data: muteTimings = [] } = useMuteTimings({
+    alertmanager: selectedAlertmanager ?? '',
+    skip: !showTimingsTab,
+  });
 
-  const contactPointsState = useGetContactPointsState(selectedAlertmanager ?? '');
-
-  // const {
-  //   currentData: result,
-  //   isLoading: resultLoading,
-  //   error: resultError,
-  // } = useAlertmanagerConfig(selectedAlertmanager, {
-  //   refetchOnFocus: true,
-  //   refetchOnReconnect: true,
-  // });
-
-  // const config = result?.alertmanager_config;
+  const contactPointsState = useGetContactPointsState(
+    // Workaround to not try and call this API when we don't have access to the policies tab
+    showPoliciesTab && canSeeContactPointsStatus ? (selectedAlertmanager ?? '') : ''
+  );
 
   const {
-    currentData: result,
-    isLoading: resultLoading,
+    currentData,
+    isLoading,
     error: resultError,
     refetch: refetchNotificationPolicyRoute,
-  } = useNotificationPolicyRoute(selectedAlertmanager);
+  } = useNotificationPolicyRoute({ alertmanager: selectedAlertmanager ?? '' }, { skip: !showPoliciesTab });
+
+  const [result] = currentData && currentData.length > 0 ? currentData : [];
 
   const updateNotificationPolicyRoute = useUpdateNotificationPolicyRoute(selectedAlertmanager ?? '');
 
   const { currentData: alertGroups, refetch: refetchAlertGroups } = useGetAlertmanagerAlertGroupsQuery(
     { amSourceName: selectedAlertmanager ?? '' },
-    { skip: !selectedAlertmanager }
+    { skip: !showPoliciesTab || !canSeeAlertGroups || !selectedAlertmanager }
   );
 
-  // TODO Receivers should be fetched separately from apropriate k8s endpoint
-  const receivers: Receiver[] = [];
+  const { contactPoints: receivers } = useContactPointsWithStatus({
+    alertmanager: selectedAlertmanager ?? '',
+    fetchPolicies: false,
+    fetchStatuses: canSeeContactPointsStatus,
+    skip: !showPoliciesTab,
+  });
 
   const rootRoute = useMemo(() => {
     if (result) {
@@ -215,9 +228,8 @@ const AmRoutes = () => {
   }
 
   const numberOfMuteTimings = muteTimings.length;
-  const haveData = result && !resultError && !resultLoading;
-  const isFetching = !result && resultLoading;
-  const haveError = !!resultError && !resultLoading;
+  const hasPoliciesData = result && !resultError && !isLoading;
+  const hasPoliciesError = !!resultError && !isLoading;
 
   const muteTimingsTabActive = activeTab === ActiveTab.MuteTimings;
   const policyTreeTabActive = activeTab === ActiveTab.NotificationPolicies;
@@ -226,34 +238,39 @@ const AmRoutes = () => {
     <>
       <GrafanaAlertmanagerDeliveryWarning currentAlertmanager={selectedAlertmanager} />
       <TabsBar>
-        <Tab
-          label={'Notification Policies'}
-          active={policyTreeTabActive}
-          onChangeTab={() => {
-            setActiveTab(ActiveTab.NotificationPolicies);
-            setQueryParams({ tab: ActiveTab.NotificationPolicies });
-          }}
-        />
-        <Tab
-          label={'Mute Timings'}
-          active={muteTimingsTabActive}
-          counter={numberOfMuteTimings}
-          onChangeTab={() => {
-            setActiveTab(ActiveTab.MuteTimings);
-            setQueryParams({ tab: ActiveTab.MuteTimings });
-          }}
-        />
+        {showPoliciesTab && (
+          <Tab
+            label={'Notification Policies'}
+            active={policyTreeTabActive}
+            onChangeTab={() => {
+              setActiveTab(ActiveTab.NotificationPolicies);
+              setQueryParams({ tab: ActiveTab.NotificationPolicies });
+            }}
+          />
+        )}
+        {showTimingsTab && (
+          <Tab
+            label={'Mute Timings'}
+            active={muteTimingsTabActive}
+            counter={numberOfMuteTimings}
+            onChangeTab={() => {
+              setActiveTab(ActiveTab.MuteTimings);
+              setQueryParams({ tab: ActiveTab.MuteTimings });
+            }}
+          />
+        )}
       </TabsBar>
       <TabContent className={styles.tabContent}>
-        {isFetching && <LoadingPlaceholder text="Loading Alertmanager config..." />}
+        {isLoading && <LoadingPlaceholder text="Loading notification policies..." />}
+
         {policyTreeTabActive && (
           <>
-            {haveError && (
+            {hasPoliciesError && (
               <Alert severity="error" title="Error loading Alertmanager config">
-                {resultError.message || 'Unknown error.'}
+                {stringifyErrorLike(resultError) || 'Unknown error.'}
               </Alert>
             )}
-            {haveData && (
+            {hasPoliciesData && (
               <Stack direction="column" gap={1}>
                 {rootRoute && (
                   <NotificationPoliciesFilter
@@ -275,7 +292,10 @@ const AmRoutes = () => {
                     onDeletePolicy={openDeleteModal}
                     onShowAlertInstances={showAlertGroupsModal}
                     routesMatchingFilters={routesMatchingFilters}
-                    matchingInstancesPreview={{ groupsMap: routeAlertGroupsMap, enabled: !instancesPreviewError }}
+                    matchingInstancesPreview={{
+                      groupsMap: routeAlertGroupsMap,
+                      enabled: canSeeAlertGroups && !instancesPreviewError,
+                    }}
                     isAutoGenerated={false}
                     isDefaultPolicy
                   />
@@ -390,8 +410,8 @@ interface QueryParamValues {
   tab: ActiveTab;
 }
 
-function getActiveTabFromUrl(queryParams: UrlQueryMap): QueryParamValues {
-  let tab = ActiveTab.NotificationPolicies; // default tab
+function getActiveTabFromUrl(queryParams: UrlQueryMap, defaultTab: ActiveTab): QueryParamValues {
+  let tab = defaultTab;
 
   if (queryParams.tab === ActiveTab.NotificationPolicies) {
     tab = ActiveTab.NotificationPolicies;
