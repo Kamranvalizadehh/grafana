@@ -1,8 +1,8 @@
 import { isEqual } from 'lodash';
 
 import { UrlQueryMap } from '@grafana/data';
+import { getClosestScopesFacade, ScopesFacade } from '@grafana/runtime';
 import { sceneGraph, SceneObjectBase, SceneObjectState, VariableDependencyConfig } from '@grafana/scenes';
-import { getClosestScopesFacade, ScopesFacade } from 'app/features/scopes';
 
 import { getDashboardScenePageStateManager } from '../pages/DashboardScenePageStateManager';
 
