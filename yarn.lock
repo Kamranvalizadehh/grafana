@@ -3886,7 +3886,7 @@ __metadata:
     "@lezer/common": "npm:1.2.3"
     "@lezer/highlight": "npm:1.2.1"
     "@lezer/lr": "npm:1.4.2"
-    "@prometheus-io/lezer-promql": "npm:0.55.1"
+    "@prometheus-io/lezer-promql": "patch:@prometheus-io/lezer-promql@npm%3A0.55.1#~/.yarn/patches/@prometheus-io-lezer-promql-npm-0.55.1-60d9541361.patch"
     "@reduxjs/toolkit": "npm:2.2.8"
     "@rollup/plugin-image": "npm:3.0.3"
     "@rollup/plugin-node-resolve": "npm:15.3.0"
@@ -4266,7 +4266,7 @@ __metadata:
     rc-time-picker: "npm:^3.7.3"
     rc-tooltip: "npm:6.2.1"
     react: "npm:18.2.0"
-    react-calendar: "npm:5.0.0"
+    react-calendar: "npm:^5.1.0"
     react-colorful: "npm:5.6.1"
     react-custom-scrollbars-2: "npm:4.5.0"
     react-dom: "npm:18.2.0"
@@ -6352,6 +6352,16 @@ __metadata:
     "@lezer/highlight": ^1.1.2
     "@lezer/lr": ^1.2.3
   checksum: 10/58f286a3d787429b1a8e210b8044a71bc9fca331a1f1a1751d35bd70fe5d53bc4557aad9552fe132f4b33765239b2d25c5d0bbc483742def2bcf421fd9174560
+  languageName: node
+  linkType: hard
+
+"@prometheus-io/lezer-promql@patch:@prometheus-io/lezer-promql@npm%3A0.55.1#~/.yarn/patches/@prometheus-io-lezer-promql-npm-0.55.1-60d9541361.patch":
+  version: 0.55.1
+  resolution: "@prometheus-io/lezer-promql@patch:@prometheus-io/lezer-promql@npm%3A0.55.1#~/.yarn/patches/@prometheus-io-lezer-promql-npm-0.55.1-60d9541361.patch::version=0.55.1&hash=436df0"
+  peerDependencies:
+    "@lezer/highlight": ^1.1.2
+    "@lezer/lr": ^1.2.3
+  checksum: 10/e5a5306dd129e8b87cb3ac73eb6e4f2633655f928b2d9a85016ac8088c776c995c4c210ae993e6e54e58121dce3ef8f8b996da558f0dad918c7b04c64ae2a9d4
   languageName: node
   linkType: hard
 
@@ -26951,9 +26961,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-calendar@npm:5.0.0":
-  version: 5.0.0
-  resolution: "react-calendar@npm:5.0.0"
+"react-calendar@npm:^5.1.0":
+  version: 5.1.0
+  resolution: "react-calendar@npm:5.1.0"
   dependencies:
     "@wojtekmaj/date-utils": "npm:^1.1.3"
     clsx: "npm:^2.0.0"
@@ -26966,7 +26976,7 @@ __metadata:
   peerDependenciesMeta:
     "@types/react":
       optional: true
-  checksum: 10/1172828652e796a946beec4f7f4125bfbe775a39c4cdab2179cef04b0688e892062f628ec9263bdfea6d9be41c3de1414586036d03d6694e6008cd4763649581
+  checksum: 10/69c5f809646edae64dc75d8709ccac979723fde2d5752f0992e429d09a1caf45e6c2d340563dfec2cf27e22a19b5f51f65c05decfcae9860c34470c08261de43
   languageName: node
   linkType: hard
 

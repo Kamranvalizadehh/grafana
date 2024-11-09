@@ -49,7 +49,7 @@
     "@lezer/common": "1.2.3",
     "@lezer/highlight": "1.2.1",
     "@lezer/lr": "1.4.2",
-    "@prometheus-io/lezer-promql": "0.55.1",
+    "@prometheus-io/lezer-promql": "patch:@prometheus-io/lezer-promql@npm%3A0.55.1#~/.yarn/patches/@prometheus-io-lezer-promql-npm-0.55.1-60d9541361.patch",
     "@reduxjs/toolkit": "2.2.8",
     "d3": "7.9.0",
     "date-fns": "3.6.0",
